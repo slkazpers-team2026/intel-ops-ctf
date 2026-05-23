@@ -19,7 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          <div className="relative min-h-screen overflow-x-hidden">
+          <div className="relative main-container">
             <div className="scanline"></div>
             {children}
           </div>

@@ -9,14 +9,25 @@
 }
 
 @layer base {
+  html {
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: 'Courier New', Courier, monospace;
+    overflow: hidden;
   }
 }
 
 @layer components {
+  .main-container {
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+  }
+
   .hacker-btn {
     @apply border border-green-500 bg-transparent text-green-500 px-6 py-2 hover:bg-green-500 hover:text-black transition-all duration-300 font-bold uppercase tracking-widest;
   }

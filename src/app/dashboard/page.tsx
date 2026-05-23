@@ -5,10 +5,11 @@ import { useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, increment, getDocs, where } from "firebase/firestore";
-import { Lock, Unlock, CheckCircle2, Trophy, Terminal, LogOut } from "lucide-react";
+import { Lock, Unlock, CheckCircle2, Trophy, Terminal, LogOut, PartyPopper } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Challenge {
   id: string;
@@ -17,6 +18,7 @@ interface Challenge {
   clue: string;
   points: number;
   flag: string;
+  formatGuide?: string;
 }
 
 export default function Dashboard() {
@@ -24,7 +26,14 @@ export default function Dashboard() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [submission, setSubmission] = useState<{ [key: string]: string }>({});
   const [feedback, setFeedback] = useState<{ [key: string]: string }>({});
+  const [showMissionAccomplished, setShowMissionAccomplished] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (profile && profile.currentLevel > 22) {
+      setShowMissionAccomplished(true);
+    }
+  }, [profile]);
 
   useEffect(() => {
     const q = query(collection(db, "challenges"), orderBy("levelId", "asc"));
@@ -55,6 +64,11 @@ export default function Dashboard() {
           currentLevel: increment(1),
           totalPoints: increment(challenge.points)
         });
+
+        // Special check for Level 22
+        if (challenge.levelId === 22) {
+          setShowMissionAccomplished(true);
+        }
       }
     } else {
       setFeedback({ ...feedback, [challenge.id]: "INVALID_FLAG_REJECTED" });
@@ -68,7 +82,58 @@ export default function Dashboard() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen p-8 max-w-7xl mx-auto">
+      <div className="min-h-screen p-8 max-w-7xl mx-auto relative">
+        <AnimatePresence>
+          {showMissionAccomplished && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+            >
+              <motion.div 
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                className="max-w-2xl w-full hacker-card border-green-500 shadow-[0_0_50px_rgba(0,255,0,0.2)] text-center relative overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-green-500 to-transparent animate-pulse" />
+                
+                <div className="flex flex-col items-center gap-6 py-8">
+                  <div className="p-4 rounded-full bg-green-500/10 border border-green-500 animate-bounce">
+                    <PartyPopper size={48} className="text-green-500" />
+                  </div>
+
+                  <h1 className="text-3xl md:text-4xl font-bold text-green-500 tracking-tighter uppercase">
+                    🎉 MISSION ACCOMPLISHED! 🎉
+                  </h1>
+
+                  <div className="space-y-6 text-green-400 font-mono leading-relaxed px-4">
+                    <p className="text-lg md:text-xl">
+                      සුභ පැතුම්! ඔයා අති දක්ෂ ලෙස &apos;Operation: Drug Buster&apos; මෙහෙයුම සාර්ථකව නිම කළා. සමාජ මාධ්‍ය ජාලයේ සැඟවී සිටි &apos;බොට්ටු දිසා&apos; ඇතුළු ජාවාරම්කරුවන් නීතියේ රැහැනට කොටු කිරීමට ඔයා ලබා දුන් දායකත්වය අතිවිශිෂ්ටයි. ඔයා සැබෑ සයිබර් විමර්ශකයෙක්! ඔබේ විමර්ශන කුසලතා තවදුරටත් ඔප් නංවා ගැනීමට සුබ පැතුම්!
+                    </p>
+                    
+                    <div className="pt-8 border-t border-green-900/50">
+                      <p className="text-sm font-bold tracking-[0.2em] text-cyan-400 uppercase">
+                        IP RMKD Wimalarathne - CSOSI Unit - STF
+                      </p>
+                      <p className="text-xs text-green-900 mt-2 uppercase tracking-widest">
+                        OSINT Challenge 01 - 2026
+                      </p>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setShowMissionAccomplished(false)}
+                    className="mt-8 hacker-btn text-xs px-8"
+                  >
+                    RETURN_TO_DASHBOARD
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Header */}
         <header className="flex justify-between items-center mb-12 border-b border-green-900 pb-6">
           <div>
@@ -103,7 +168,7 @@ export default function Dashboard() {
         </div>
 
         {/* Challenges Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {challenges.map((challenge) => {
             const isLocked = (profile?.currentLevel || 1) < challenge.levelId;
             const isCompleted = (profile?.currentLevel || 1) > challenge.levelId;
@@ -126,11 +191,11 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                <h3 className="text-lg font-bold mb-2 text-green-400 uppercase tracking-tight">
+                <h3 className="text-xl font-bold mb-2 text-green-400 uppercase tracking-tight">
                   {isLocked ? "ENCRYPTED_DATA" : challenge.title}
                 </h3>
                 
-                <p className="text-xs text-green-800 mb-6 flex-grow leading-relaxed">
+                <p className="text-base text-green-800 mb-6 flex-grow leading-relaxed">
                   {isLocked ? "ACCESS_DENIED: Complete previous level to decrypt Intel Clue." : challenge.clue}
                 </p>
 
@@ -138,7 +203,7 @@ export default function Dashboard() {
                   <div className="space-y-3 mt-auto">
                     <input
                       type="text"
-                      placeholder="ENTER_FLAG_HERE"
+                      placeholder={challenge.formatGuide ? `${challenge.formatGuide}` : "ENTER_FLAG_HERE"}
                       className="hacker-input text-xs p-2"
                       value={submission[challenge.id] || ""}
                       onChange={(e) => setSubmission({ ...submission, [challenge.id]: e.target.value })}
